@@ -4,10 +4,10 @@
 > 커밋 컨벤션: `<type>(<scope>): <subject> [§N]` · scope = `infra`·`seed`·`nl2sql`·`safety`·`exec`·`ui`·`chart`·`bracket`·`eval`
 
 ## Phase B — 툴체인 (§1)
-- [ ] `[§1]` Next 16(App Router)+React 19+TS+Tailwind 4 스캐폴딩
-- [ ] `[§1]` kit eslint 템플릿(flat config) 적용 + prettier + `.nvmrc`(22)
-- [ ] `[§1]` lint/typecheck/build/test 스크립트 + vitest
-- [ ] `[§1]` `.env.example` (API_FOOTBALL_KEY·SUPABASE·TEXT2SQL_MODEL)
+- [x] `[§1]` Next 16(App Router)+React 19+TS+Tailwind 4 스캐폴딩
+- [x] `[§1]` kit eslint 템플릿(flat config) 적용 + prettier + `.nvmrc`(22)
+- [x] `[§1]` lint/typecheck/build/test 스크립트 + vitest — 4 게이트 통과
+- [x] `[§1]` `.env.example` (API_FOOTBALL_KEY·SUPABASE·TEXT2SQL_MODEL)
 - [ ] `[§1]` shadcn/ui 초기화 (컴포넌트 필요 시점에)
 
 ## 데이터 (§2)
