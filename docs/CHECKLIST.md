@@ -22,13 +22,15 @@
 - [x] 데이터 검증: **et 누적**(결승 3-3)·**재귀 CTE 대진표**(ARG ro16→final) 통과 / 자책골은 완주 후 재확인
 - [ ] `.db` 완주 후 git 커밋 (배포에 딸려감)
 
-## NL→SQL 파이프라인 (§3)
-- [ ] `[§3]` 스키마 컨텍스트 주입 프롬프트 + `generateObject`(Zod: `{sql, explanation}`)
-- [ ] `[§3]` 응답 status enum(`planned`/`clarify`/`rejected`/`error`) + never-500 wrapper
+## NL→SQL 파이프라인 (§3) ✅
+- [x] `[§3]` 스키마 컨텍스트 주입 프롬프트 + `generateText`+`Output.object`(Zod, v7) — provider-neutral BYOK(Gemini 기본)
+- [x] `[§3]` 응답 status enum(`planned`/`clarify`/`rejected`/`error`) + never-500 wrapper
+- [~] `[§3]` 라이브 검증(generateText 실호출) — BYOK 키 필요, §5 UI 연결 시 확정
 
-## 안전성 (§4)
-- [ ] `[§4]` AST 검증기(`node-sql-parser`, SQLite 방언) — 단일 SELECT만 통과
-- [ ] `[§4]` 실행 래퍼: SQLite **읽기전용 open**(`{readonly:true}`) + 쿼리 타임아웃 + 강제 LIMIT
+## 안전성 (§4) ✅
+- [x] `[§4]` AST 검증기(`node-sql-parser`, **postgres 문법 = statement 분류기**) — 단일 SELECT/WITH만 통과. sqlite 방언은 `PARTITION BY` 없는 윈도우 함수 파싱 못 해 postgres 채택
+- [x] `[§4]` 실행 래퍼: SQLite **읽기전용 open**(`{readonly:true}`, 싱글톤) + **`iterate()` 지연소비 행 상한 1000**(무한 재귀 CTE 종료) — `safeQuery` never-500. better-sqlite3 `interrupt()` 부재로 인프로세스 타임아웃 대신 행 상한
+- [x] `[§4]` 라이브 검증: 실제 `db/worldcup.db`로 유효 실행·INSERT/DROP/UPDATE/멀티 거부·bad column→error 확인
 
 ## 실행 + UI (§5)
 - [ ] `[§5]` 쿼리 실행 + 결과 반환

@@ -26,8 +26,8 @@
 | 연습 대상 | 구체적으로 |
 |---|---|
 | 스키마-그라운딩 프롬프팅 | 월드컵 스키마를 컨텍스트로 주입해 LLM이 그 스키마에 맞는 SQL만 생성 |
-| 구조화 출력 검증 | `generateObject` + Zod로 `{ sql, explanation }` 강제 |
-| 안전성 검증 계층 | (1차) 앱: **AST 파서로 단일 SELECT만 통과** — (2차·진짜 방어선) **SQLite 읽기전용 open** + 쿼리 타임아웃 + 강제 LIMIT (§4.1) |
+| 구조화 출력 검증 | `generateText`+`Output.object`(v7; `generateObject` deprecated) + Zod로 `{ sql, explanation }` 강제 |
+| 안전성 검증 계층 | (1차) 앱: **AST 파서로 단일 SELECT만 통과** — (2차·진짜 방어선) **SQLite 읽기전용 open** + 강제 행 상한(1000, 지연소비) (§4.1) |
 | 정확도 eval 루프 | gold SQL 세트 대비 execution-match 정확도 측정 |
 | 재귀 CTE | 토너먼트 대진표를 `next_match_id` 자기참조로 모델링 → "이 팀이 최종적으로 어디까지 진출했는가"를 재귀 CTE로 추적 |
 
@@ -37,9 +37,9 @@
 
 ### Required
 - [ ] API-Football로 2022 WC 스냅샷 시딩 → `db/worldcup.db`(SQLite, 커밋됨) — §3
-- [ ] SQLite 읽기전용 조회 계층 (`{ readonly: true }` open) + 쿼리 타임아웃 + 강제 LIMIT (§4.1)
-- [ ] NL → SQL 생성 (Vercel AI SDK `generateObject`, Zod: `{ sql, explanation }`)
-- [ ] SQL 안전성 검증기 — **AST 파서(`node-sql-parser`, SQLite 방언)로 단일 SELECT만 통과** (§4.1)
+- [ ] SQLite 읽기전용 조회 계층 (`{ readonly: true }` open) + 강제 행 상한(1000, 지연소비) (§4.1)
+- [ ] NL → SQL 생성 (Vercel AI SDK `generateText`+`Output.object`, Zod: `{ sql, explanation }`)
+- [ ] SQL 안전성 검증기 — **AST 파서(`node-sql-parser`, postgres 문법 = statement 분류기)로 단일 SELECT/WITH만 통과** (§4.1)
 - [ ] 쿼리 실행 + 결과 반환
 - [ ] BYOK UI — 설정 모달, 브라우저 로컬 저장만, 서버 미저장
 - [ ] 질의 입력 + SQL 뷰어 + 결과 테이블 (§6 UI 구성)
@@ -48,7 +48,7 @@
 - [ ] gold SQL 세트 15~20문항 (§3.1 질문 뱅크 기반)
 - [ ] eval 스크립트 — execution-match 정확도 산출
 - [ ] Vercel 배포 (데모 공유의 전제조건)
-- [ ] 안전성 수동 테스트 (인젝션·비용 공격 케이스 → 읽기전용 open + 쿼리 타임아웃에서 차단 확인)
+- [ ] 안전성 수동 테스트 (인젝션·비용 공격 케이스 → 읽기전용 open + 행 상한에서 차단 확인)
 
 ### Optional (여력 되면)
 - [ ] 멀티 모델 비교 eval (GPT-4.1 / Gemini / Claude 정확도 비교표)
@@ -156,7 +156,7 @@ players      (id, team_id, name, position, shirt_number)
 | 스타일링 | Tailwind CSS 4 + shadcn/ui |
 | DB | **SQLite** (`db/worldcup.db`, 고정 읽기전용 스냅샷). 시딩=`better-sqlite3`(빌드측), 런타임 조회=읽기전용 open — ORM 없음. 보안은 §4.1 |
 | 데이터 시딩 | API-Football (api-sports.io) — 1회성 스냅샷 → SQLite, `API_FOOTBALL_KEY` env var. tsx 스크립트 |
-| LLM 호출 | Vercel AI SDK `generateObject` |
+| LLM 호출 | Vercel AI SDK `generateText`+`Output.object` |
 | 검증 | Zod + `node-sql-parser`(SQLite 방언 AST 파서, SQL 안전성 검증) |
 | 모델 지정 | env var `TEXT2SQL_MODEL` — API Key는 BYOK로 클라이언트가 요청마다 전달, 서버 미저장 |
 | 기본 차트 | Recharts |
@@ -171,7 +171,7 @@ players      (id, team_id, name, position, shirt_number)
 | 지킬 것 | 위협 | 맞는 방어 (SQLite) |
 |---|---|---|
 | **무결성** — 데모 데이터가 훼손되지 않을 것 | 변조·삭제 | **`.db`를 읽기전용으로 open** (`readonly: true`) → 쓰기 자체가 불가 |
-| **가용성** — 데모가 죽지 않을 것 | 비용 공격(무한 재귀 CTE 등) | **쿼리 타임아웃**(`sqlite3_interrupt`/PRAGMA) + 강제 `LIMIT` + Vercel 함수 타임아웃(백스톱) |
+| **가용성** — 데모가 죽지 않을 것 | 비용 공격(무한 재귀 CTE 등) | **강제 행 상한**(`iterate()` 지연 소비 + 1000행 컷 → 무한 재귀도 종료) + Vercel 함수 타임아웃(CPU 백스톱) |
 | **격리** — 이 DB가 다른 데이터로 가는 발판이 안 될 것 | 시스템 테이블·타 데이터 pivot | **파일 자체가 이 5테이블뿐** — 훔칠 것도 갈 곳도 구조적으로 없음(blast radius=0) |
 
 SQLite로 전환하면서 방어가 극적으로 단순해졌다: 데이터가 **고정 읽기전용 파일**이라, Postgres 시절의 role·RLS·RPC 하드닝이 **전부 불필요**해진다. 학습 목표가 text-to-SQL이므로 "임의 SELECT 실행"은 없앨 수 없는 고정 제약이고, 그 위에서:
@@ -180,12 +180,12 @@ SQLite로 전환하면서 방어가 극적으로 단순해졌다: 데이터가 *
 앱은 `new Database(path, { readonly: true })`로 연다. 어떤 SQL이 검증기를 뚫어도 **쓰기 커넥션이 아니라서** `DELETE`/`DROP`/`UPDATE`가 실패한다. 파일 자체엔 공개 월드컵 데이터 5테이블 말고 아무것도 없어 격리도 자동(파일 하나 = blast radius 0).
 
 **(2) 비용 공격 방어**
-SQLite엔 role별 `statement_timeout`이 없으므로, ① 실행 래퍼에서 **쿼리 타임아웃**(`setTimeout` + `db.interrupt()` 또는 `progress_handler`)과 ② 결과 행 강제 `LIMIT`(예: 1000)을 건다. ③ Vercel 서버리스 함수의 최대 실행시간이 최종 백스톱.
+better-sqlite3는 **동기 실행이라 `interrupt()`가 없고** `setTimeout` 콜백은 쿼리가 도는 동안 발화하지 못한다(단일 스레드 블로킹). 그래서 인프로세스 CPU 타임아웃 대신 ① 실행 래퍼에서 **`stmt.iterate()` 지연 소비 + 행 상한(1000)** 을 건다 — SQLite가 행을 지연 생성하므로, 상한에서 소비를 멈추면 **무한 재귀 CTE도 즉시 종료**된다(결과 크기·런어웨이 둘 다 차단). ② 데이터가 5테이블·수백 행뿐이라 CROSS JOIN도 실질적으로 유한하다. ③ Vercel 서버리스 함수의 최대 실행시간이 CPU 최종 백스톱. (검증: 무한 재귀 CTE가 1000행·2ms에서 종료됨을 테스트로 확인.)
 
 **(3) 앱 검증기 — 정규식 키워드 차단이 아니라 AST 파서**
-`DROP`·`;` 문자열 매칭은 주석(`/**/`)·인코딩·키워드 미사용 우회에 취약하다. 대신 **`node-sql-parser`(SQLite 방언)로 파싱해 "statement 정확히 1개 + 타입이 `SELECT`(WITH 포함)"만 통과**시킨다. 파서가 정규식보다 압도적으로 견고하다. (읽기전용 open이 진짜 경계이고, 이건 우회 가능한 1차 보호.)
+`DROP`·`;` 문자열 매칭은 주석(`/**/`)·인코딩·키워드 미사용 우회에 취약하다. 대신 **`node-sql-parser`로 파싱해 "statement 정확히 1개 + 타입이 `SELECT`(WITH 포함)"만 통과**시킨다. 파서가 정규식보다 압도적으로 견고하다. 검증기는 SQLite 린터가 아니라 **statement 분류기**이므로 파싱은 **PostgreSQL 문법**으로 한다 — node-sql-parser의 sqlite 방언은 `PARTITION BY` 없는 윈도우 함수(`RANK() OVER (ORDER BY …)`)를 파싱 못 하는 반면 postgres 문법은 파싱하면서 INSERT/UPDATE/DELETE/DROP·멀티스테이트먼트는 그대로 걸러낸다. 문법 방언 불일치는 안전하다: 쓰기 키워드는 어느 방언에서도 `select`로 분류되지 않고, 읽기전용 open이 최종 경계다. (읽기전용 open이 진짜 경계이고, 이건 우회 가능한 1차 보호.)
 
-> ✅ **Postgres 시절 대비**: 전용 격리 프로젝트·read-only role·RLS·`SECURITY INVOKER` RPC가 **전부 사라지고**, "파일을 읽기전용으로 연다" 하나로 무결성·격리가 해결된다. 남는 건 비용 공격(타임아웃+LIMIT)과 1차 AST 검증뿐.
+> ✅ **Postgres 시절 대비**: 전용 격리 프로젝트·read-only role·RLS·`SECURITY INVOKER` RPC가 **전부 사라지고**, "파일을 읽기전용으로 연다" 하나로 무결성·격리가 해결된다. 남는 건 비용 공격(행 상한)과 1차 AST 검증뿐.
 
 ---
 
@@ -198,9 +198,9 @@ SQLite엔 role별 `statement_timeout`이 없으므로, ① 실행 래퍼에서 *
 사용자 NL 질문
   → (클라이언트) 요청에 API Key 동봉
   → 스키마 컨텍스트 주입 프롬프트
-  → LLM (generateObject, Zod: {sql, explanation})
+  → LLM (generateText+Output.object, Zod: {sql, explanation})
   → 안전성 검증기 (AST 파서로 단일 SELECT만) — 앱 레벨 1차 방어(우회 가능, UX/비용 보호)
-  → SQLite 읽기전용 실행 (readonly open + 쿼리 타임아웃 + LIMIT) — 진짜 경계(쓰기 불가)
+  → SQLite 읽기전용 실행 (readonly open + 행 상한(iterate)) — 진짜 경계(쓰기 불가)
   → 결과 테이블 + 차트(자동 선택) 반환
   → 결과가 (team, round, next_match_id) 경로 형태면 D3 대진표 트리로 자동 분기
 
@@ -293,7 +293,7 @@ SQLite엔 role별 `statement_timeout`이 없으므로, ① 실행 래퍼에서 *
 **2단계 분리** — 스타일 결정은 AI가 아니라 **앱이 실제 결과 shape로** 한다:
 
 ```
-① AI 단계: NL → generateObject → { sql, explanation, viz_hint? }
+① AI 단계: NL → generateText+Output.object → { sql, explanation, viz_hint? }
    (이 시점엔 쿼리 미실행 → LLM은 결과 행수·컬럼타입을 모름)
 ② 앱 단계: sql 실행 → 실제 결과(컬럼·타입·행수) 확인 → 출력 스타일 결정
 ```
@@ -320,7 +320,7 @@ SQLite엔 role별 `statement_timeout`이 없으므로, ① 실행 래퍼에서 *
 
 - gold set 15~20문항 중 execution-match 정확도가 산출됨 (`order_sensitive` 태깅 반영, temperature=0)
 - SQL 인젝션/위험 쿼리(`DROP TABLE`, `; DELETE FROM ...`)가 앱 검증기 통과 시에도 **읽기전용 open이라 쓰기 불가로 실패**함을 테스트로 확인 (진짜 방어선 검증)
-- 비용 공격(예: 대형 CROSS JOIN·무한 재귀 CTE)이 **쿼리 타임아웃**에 걸려 중단됨을 확인
+- 비용 공격(예: 대형 CROSS JOIN·무한 재귀 CTE)이 **행 상한(1000)**에서 중단됨을 확인
 - 실패 케이스(오답 SQL) 최소 1회 분석 + 기록
 - BYOK 흐름 확인: API Key가 서버 로그/DB 어디에도 남지 않는지 점검
 - 재귀 CTE 쿼리 결과가 D3 대진표 트리로 정확히 렌더링됨 (아르헨티나 우승 경로 수동 검증 1회, 승부차기 경기 포함 시 `winner_team_id` 기준으로 올바르게 순회, 호버 상세 정확성 확인)
@@ -339,7 +339,7 @@ SQLite엔 role별 `statement_timeout`이 없으므로, ① 실행 래퍼에서 *
 | 시딩 = 1회성 스냅샷 → SQLite | 무료 10 req/min·100 req/day | 앱은 런타임에 API 미호출(`.db`만 읽음). eval 재현성 확보. 6.5s 스로틀 + 재개로 배치 |
 | `next_match_id`/`winner_team_id` 구성 | API에 대진표 연결·승부차기 승자 판별이 명시적으로 없음 | 시딩 시 대진표 고정 포맷으로 next_match_id 구성, 승자는 `pen>et>ft`로 계산. 재귀 CTE flagship 생존 필수 |
 | 위협 모델 = 기밀성 제외, 무결성·가용성·격리만 | 데이터가 100% 공개라 confidentiality가 목표가 아님 | 방어 설계의 출발점. 지킬 게 셋으로 좁혀져 과설계 없이 정확한 방어 선택 가능 |
-| DB 방어 = 읽기전용 open + 쿼리 타임아웃 + AST 검증 | 고정 읽기전용 파일이라 무결성·격리가 "파일을 readonly로 연다"로 해결 | ①`{readonly:true}` open → 쓰기 불가(무결성) ②파일에 5테이블뿐 → blast radius 0(격리) ③쿼리 타임아웃+LIMIT(비용) ④`node-sql-parser` AST로 단일 SELECT만(1차) |
+| DB 방어 = 읽기전용 open + 행 상한 + AST 검증 | 고정 읽기전용 파일이라 무결성·격리가 "파일을 readonly로 연다"로 해결 | ①`{readonly:true}` open → 쓰기 불가(무결성) ②파일에 5테이블뿐 → blast radius 0(격리) ③iterate 행 상한(비용) ④`node-sql-parser` AST로 단일 SELECT만(1차) |
 | eval 채점 = `order_sensitive` 태깅 + temperature=0 | 단순 집합 비교는 순서 틀린 TOP-N을 오답인데 통과시킴 | text-to-sql 채점은 순서 민감도 구분이 필요 (Spider도 단순 집합비교 안 씀). 단일 실행 수치는 회귀 감지용 근사치 |
 | D3 인터랙티브 트리 | 호버 상세·전환 애니메이션 포함 | 재귀 CTE 결과를 데모에 걸맞은 완성도로 시각화 |
 | ORM 미사용 (Prisma 생략) | `better-sqlite3`(시딩)·읽기전용 open(런타임) 직접 사용 | 스키마가 단순해 마이그레이션 도구 없이도 충분 |

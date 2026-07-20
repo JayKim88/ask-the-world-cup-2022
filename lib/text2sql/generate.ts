@@ -1,5 +1,6 @@
-// NL → SQL generation (PRD §3). generateObject forces a Zod-validated shape;
-// the LLM itself signals sql / clarify / reject via `kind`. answer() never
+// NL → SQL generation (PRD §3). generateText + Output.object forces a
+// Zod-validated shape; the LLM itself signals sql / clarify / reject via
+// `kind`. answer() never
 // throws — LLM/network failures collapse to status "error" (never-500 wrapper),
 // so the Server Action can always return a clean result.
 //
