@@ -7,21 +7,28 @@
 - [x] `[§1]` Next 16(App Router)+React 19+TS+Tailwind 4 스캐폴딩
 - [x] `[§1]` kit eslint 템플릿(flat config) 적용 + prettier + `.nvmrc`(22)
 - [x] `[§1]` lint/typecheck/build/test 스크립트 + vitest — 4 게이트 통과
-- [x] `[§1]` `.env.example` (API_FOOTBALL_KEY·SUPABASE·TEXT2SQL_MODEL)
+- [x] `[§1]` `.env.example` (API_FOOTBALL_KEY·TEXT2SQL_MODEL)
 - [ ] `[§1]` shadcn/ui 초기화 (컴포넌트 필요 시점에)
 
-## 데이터 (§2)
-- [ ] `[§2]` 전용 격리 Supabase 프로젝트 생성 + 스키마(5테이블) + read-only role 하드닝
-- [ ] `[§2]` API-Football 시딩 스크립트 (fixtures·statistics·events·players·standings → Supabase, 2일 배치)
-- [ ] `[§2]` `next_match_id`·`winner_team_id`(pen>et>ft) 시딩 시 구성
+## 데이터 (§2) — Supabase→**SQLite** 전환
+- [x] `[§2]` SQLite 스키마(`db/schema.sql`, 5테이블) + `better-sqlite3` 시더(`scripts/seed.ts`)
+- [x] `[§2]` `next_match_id`(승자 경로 역산)·`winner_team_id`(API 플래그) 구성 — 대진표 링크 검증됨
+- [x] `[§2]` rate-limit 대응(무료 10/min·100/day → 6.5s 스로틀 + 분당 429 재시도 + 재개)
+- [~] `[§2]` 시딩 실행 → `db/worldcup.db` (아래 진행 상황)
+
+### 시딩 진행 (배치)
+- [x] **1일차** (2026-07-20): teams(32)·players(878)·matches(64)·**대진표 링크** 완비 / match_stats·goals **28/64경기** → 일일한도 도달, graceful 중단(⏸)
+- [ ] **재개** (한도 리셋 후 `pnpm seed`): stats/goals **나머지 36경기** → `.db` 완주
+- [x] 데이터 검증: **et 누적**(결승 3-3)·**재귀 CTE 대진표**(ARG ro16→final) 통과 / 자책골은 완주 후 재확인
+- [ ] `.db` 완주 후 git 커밋 (배포에 딸려감)
 
 ## NL→SQL 파이프라인 (§3)
 - [ ] `[§3]` 스키마 컨텍스트 주입 프롬프트 + `generateObject`(Zod: `{sql, explanation}`)
 - [ ] `[§3]` 응답 status enum(`planned`/`clarify`/`rejected`/`error`) + never-500 wrapper
 
 ## 안전성 (§4)
-- [ ] `[§4]` AST 검증기(`libpg_query`) — 단일 SELECT/WITH만 통과
-- [ ] `[§4]` 실행 래퍼: read-only role + `statement_timeout` + 강제 LIMIT, RPC는 `SECURITY INVOKER`
+- [ ] `[§4]` AST 검증기(`node-sql-parser`, SQLite 방언) — 단일 SELECT만 통과
+- [ ] `[§4]` 실행 래퍼: SQLite **읽기전용 open**(`{readonly:true}`) + 쿼리 타임아웃 + 강제 LIMIT
 
 ## 실행 + UI (§5)
 - [ ] `[§5]` 쿼리 실행 + 결과 반환
@@ -35,7 +42,7 @@
 ## eval + 배포 (§7)
 - [ ] `[§7]` gold set 15~20문항(`order_sensitive` 태깅) — §3.1 기반
 - [ ] `[§7]` execution-match eval 스크립트(temperature=0)
-- [ ] `[§7]` 안전성 수동 테스트(인젝션·비용공격 → role/timeout 차단 확인)
+- [ ] `[§7]` 안전성 수동 테스트(인젝션·비용공격 → 읽기전용 open·쿼리 타임아웃 차단 확인)
 - [ ] `[§7]` Vercel 배포
 - [ ] `[§7]` 제품 README(reader-facing) 작성 — Phase D
 

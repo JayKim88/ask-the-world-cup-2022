@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# SQLite runtime temp files (the .db snapshot itself IS committed)
+*.db-wal
+*.db-shm
