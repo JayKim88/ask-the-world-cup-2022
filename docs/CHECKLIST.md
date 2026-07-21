@@ -17,10 +17,11 @@
 - [~] `[§2]` 시딩 실행 → `db/worldcup.db` (아래 진행 상황)
 
 ### 시딩 진행 (배치)
-- [x] **1일차** (2026-07-20): teams(32)·players(878)·matches(64)·**대진표 링크** 완비 / match_stats·goals **28/64경기** → 일일한도 도달, graceful 중단(⏸)
-- [ ] **재개** (한도 리셋 후 `pnpm seed`): stats/goals **나머지 36경기** → `.db` 완주
-- [x] 데이터 검증: **et 누적**(결승 3-3)·**재귀 CTE 대진표**(ARG ro16→final) 통과 / 자책골은 완주 후 재확인
-- [ ] `.db` 완주 후 git 커밋 (배포에 딸려감)
+- [x] **1일차** (2026-07-20): teams(32)·players(878)·matches(64)·**대진표 링크** / match_stats·goals **28/64** → 한도 도달 ⏸
+- [x] **2일차** (2026-07-21): stats/goals **완주** — match_stats **128행(64/64)** · goals **198행(58/64, 나머지 6경기는 실제 0-0 무득점)**
+- [x] 데이터 검증: et 누적(결승 3-3)·재귀 CTE 대진표·**골수 정합**(스코어합=골행수)·**자책골 크레딧**(수혜팀) 통과
+- [~] **선수 백필** — `players/squads`가 현재 스쿼드라 2022 득점자 79명 누락(지루 등) 발견 → seed.ts에 **자가치유 백필** 추가(orphan만 `players?id&season=2022`, 팀은 로컬 도출). **12/79 완료**, 한도 도달 ⏸ → 내일 리셋 후 67명 완주
+- [ ] `.db` 완주(백필 포함) 후 git 커밋 — **선수 백필 79명 다 채워질 때까지 커밋 보류**(득점왕 질의 정확도)
 
 ## NL→SQL 파이프라인 (§3) ✅
 - [x] `[§3]` 스키마 컨텍스트 주입 프롬프트 + `generateText`+`Output.object`(Zod, v7) — provider-neutral BYOK(Gemini 기본)
@@ -32,10 +33,12 @@
 - [x] `[§4]` 실행 래퍼: SQLite **읽기전용 open**(`{readonly:true}`, 싱글톤) + **`iterate()` 지연소비 행 상한 1000**(무한 재귀 CTE 종료) — `safeQuery` never-500. better-sqlite3 `interrupt()` 부재로 인프로세스 타임아웃 대신 행 상한
 - [x] `[§4]` 라이브 검증: 실제 `db/worldcup.db`로 유효 실행·INSERT/DROP/UPDATE/멀티 거부·bad column→error 확인
 
-## 실행 + UI (§5)
-- [ ] `[§5]` 쿼리 실행 + 결과 반환
-- [ ] `[§5]` BYOK `ApiKeyDialog`(브라우저 로컬 저장, 서버 미저장)
-- [ ] `[§5]` `QueryInput`·`QueryContainer`·`SqlViewer`·`ResultsTable`·`TextType`
+## 실행 + UI (§5) ✅
+- [x] `[§5]` Server Action(`askAction`) → orchestrator `ask()`(§3 answer → §4 safeQuery) → 단일 discriminated 결과. 입력 untrusted 검증(trim·길이·키)
+- [x] `[§5]` BYOK — `ApiKeyDialog`(native `<dialog>`) + `useApiKey`(useSyncExternalStore, localStorage, 서버 미저장) + 모델 선택
+- [x] `[§5]` `QueryContainer`(상태 단독소유)·`QueryInput`(예시칩·⌘Enter)·`SqlViewer`·`ResultsTable`(위치배열·truncate 배지)
+- [x] `[§5]` LLM 라이브 검증 — **Claude 키로 전체 플로우 성공**(질문→SQL→검증→실행→테이블). Gemini 무료 티어는 계정별 `limit:0` 가능 → 멀티프로바이더 BYOK로 우회 확인
+- [x] `[§5]` 모델 ID 견고화 — 배포용 안정 모델(`gemini-2.0-flash` 기본) + 무효/deprecated 저장값 자동교체(`isKnownModel`)
 
 ## 시각화 (§6)
 - [ ] `[§6]` `ChartView` — 결과 shape 감지 라우팅(텍스트/테이블/막대/선/파이)

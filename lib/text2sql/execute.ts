@@ -14,7 +14,9 @@ import path from "node:path";
 
 import Database from "better-sqlite3";
 
-export const MAX_RESULT_ROWS = 1000;
+import { MAX_RESULT_ROWS } from "./constants";
+
+export { MAX_RESULT_ROWS };
 
 const DB_PATH = process.env.SQLITE_DB_PATH ?? path.join(process.cwd(), "db", "worldcup.db");
 
