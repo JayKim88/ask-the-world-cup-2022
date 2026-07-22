@@ -32,7 +32,15 @@ const SYSTEM_PROMPT = `${SCHEMA_CONTEXT}
 Set kind="sql" (with sql + explanation) when the question maps to the schema.
 Set kind="clarify" (with message) when the request is ambiguous (e.g. references a team/player without naming it).
 Set kind="reject" (with message) when it asks for data not in the schema, a subjective judgement, or a prediction.
-Never invent columns or tables. Never write or modify data.`;
+Never invent columns or tables. Never write or modify data.
+
+When kind="sql", also set viz_hint to the best visualization for the expected result:
+- "bar" for a category ranking or per-group count (e.g. goals per team) — the app only uses it when the result really is one label column + numbers,
+- "line" for a value over an ordered sequence (e.g. goals by minute),
+- "pie" for a small set of parts of a whole (a handful of rows),
+- "scalar" for a single number,
+- "table" for anything else (row detail, many columns). When unsure, use "table".
+The app re-checks the hint against the actual result shape and falls back to a table if it does not fit, so a wrong hint is safe.`;
 
 export type Text2SqlStatus = "planned" | "clarify" | "rejected" | "error";
 

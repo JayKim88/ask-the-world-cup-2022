@@ -14,7 +14,6 @@ interface ResultsTableProps {
 
 function formatCell(value: unknown): string {
   if (value === null || value === undefined) return "—";
-  if (typeof value === "number") return String(value);
   return String(value);
 }
 

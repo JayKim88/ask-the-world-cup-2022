@@ -115,10 +115,20 @@ const craftKitStyle = {
 //   },
 // };
 
+// Test fixtures are literal data by nature (rows of scores, ids, counts), so the
+// magic-number rule only adds noise there — turn it off for test files only.
+const testOverrides = {
+  files: ["**/*.test.ts", "**/*.test.tsx"],
+  rules: {
+    "@typescript-eslint/no-magic-numbers": "off",
+  },
+};
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   craftKitStyle,
+  testOverrides,
   // ...add importHygiene here once the resolver is installed.
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);

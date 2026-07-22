@@ -10,8 +10,8 @@ import { askAction } from "@/app/actions";
 import type { AskResult } from "@/lib/text2sql/ask";
 
 import { ApiKeyDialog } from "./ApiKeyDialog";
+import { ChartView } from "./ChartView";
 import { QueryInput } from "./QueryInput";
-import { ResultsTable } from "./ResultsTable";
 import { SqlViewer } from "./SqlViewer";
 import { useApiKey } from "./use-api-key";
 
@@ -26,7 +26,7 @@ function ResultView({ result }: { result: AskResult }) {
     return (
       <div className="flex flex-col gap-4">
         <SqlViewer sql={result.sql} explanation={result.explanation} />
-        <ResultsTable columns={result.columns} rows={result.rows} truncated={result.truncated} />
+        <ChartView columns={result.columns} rows={result.rows} truncated={result.truncated} vizHint={result.vizHint} />
       </div>
     );
   }

@@ -41,7 +41,7 @@
 - [x] `[§5]` 모델 ID 견고화 — 배포용 안정 모델(`gemini-2.0-flash` 기본) + 무효/deprecated 저장값 자동교체(`isKnownModel`)
 
 ## 시각화 (§6)
-- [ ] `[§6]` `ChartView` — 결과 shape 감지 라우팅(텍스트/테이블/막대/선/파이)
+- [x] `[§6]` `ChartView` — 결과 shape 감지 라우팅(`chooseChart`: scalar/bar/line/pie/table). LLM `viz_hint`는 shape 호환 시만 채택, 테이블 항상 폴백. Recharts + 차트/테이블 토글. 프롬프트에 viz_hint 지침 추가
 - [ ] `[§6]` `BracketTree` — D3 인터랙티브 대진표(호버 상세·전환 애니메이션)
 
 ## eval + 배포 (§7)
