@@ -30,6 +30,15 @@ interface GoalEvent {
   time: { elapsed: number | null; extra: number | null };
   type: string;
   detail: string;
+  comments: string | null; // "Penalty Shootout" marks a shootout kick (not a match goal)
+}
+interface PlayerByIdEntry {
+  player: { id: number; name: string };
+  statistics: { games: { position: string | null } }[];
+}
+interface OrphanPlayer {
+  pid: number;
+  team_id: number;
 }
 
 // ── constants ────────────────────────────────────────────────────────────────
@@ -47,6 +56,7 @@ const ROUND_MAP: Record<string, string> = {
 };
 const NEXT_ROUND: Record<string, string> = { ro16: "qf", qf: "sf", sf: "final" };
 const COUNTABLE_GOAL_DETAILS = new Set(["Normal Goal", "Penalty", "Own Goal"]);
+const SHOOTOUT_COMMENT = "Penalty Shootout"; // shootout kicks are not match goals
 
 const log = (msg: string): void => void process.stdout.write(`${msg}\n`);
 
@@ -157,6 +167,53 @@ async function seedPlayers(teamIds: number[]): Promise<void> {
   log(`✓ players: +${todo.length} squads`);
 }
 
+// `players/squads` returns the CURRENT squad, so 2022 scorers who have since left
+// their national team (e.g. Giroud) are missing — ~35% of goal events referenced
+// a player_id not in `players`. This self-healing step backfills exactly those
+// gaps by player id (season 2022). Team is derived locally from the match, not
+// the API: a normal/penalty goal credits the scorer's team, an own goal credits
+// the opponent — so an own-goal scorer belongs to the match's OTHER team.
+function orphanGoalPlayers(): OrphanPlayer[] {
+  return db
+    .prepare(
+      `select pid, team_id from (
+         select g.scorer_player_id as pid,
+           case when g.detail = 'owngoal'
+             then case when g.team_id = m.home_team_id then m.away_team_id else m.home_team_id end
+             else g.team_id end as team_id
+         from goals g join matches m on g.match_id = m.id
+         where g.scorer_player_id is not null
+         union
+         select g.assist_player_id as pid, g.team_id as team_id
+         from goals g where g.assist_player_id is not null
+       )
+       where pid not in (select id from players)
+       group by pid`,
+    )
+    .all() as OrphanPlayer[];
+}
+
+async function backfillGoalPlayers(): Promise<void> {
+  const orphans = orphanGoalPlayers();
+  if (orphans.length === 0) {
+    log("✓ goal players: all resolved (no backfill)");
+    return;
+  }
+  let filled = 0;
+  for (const orphan of orphans) {
+    const entries = await apiGet<PlayerByIdEntry>("players", { id: orphan.pid, season: WC_SEASON });
+    const player = entries[0]?.player;
+    if (!player) {
+      log(`  ⚠ player ${orphan.pid}: no 2022 record — left unresolved`);
+      continue;
+    }
+    const position = entries[0]?.statistics?.[0]?.games?.position ?? null;
+    upsertPlayer.run({ id: player.id, team_id: orphan.team_id, name: player.name, position, shirt_number: null });
+    filled += 1;
+  }
+  log(`✓ goal players backfilled: +${filled}/${orphans.length}`);
+}
+
 async function seedMatches(teamToGroup: Map<number, string>): Promise<FixtureEntry[]> {
   const fixtures = await apiGet<FixtureEntry>("fixtures", { league: WC_LEAGUE_ID, season: WC_SEASON });
   const insertAll = db.transaction(() => {
@@ -249,7 +306,8 @@ async function upsertStats(matchId: number): Promise<void> {
 
 async function upsertGoals(matchId: number): Promise<void> {
   const events = await apiGet<GoalEvent>("fixtures/events", { fixture: matchId });
-  const rows = events.filter((e) => e.type === "Goal" && COUNTABLE_GOAL_DETAILS.has(e.detail));
+  const isMatchGoal = (e: GoalEvent) => e.type === "Goal" && COUNTABLE_GOAL_DETAILS.has(e.detail) && e.comments !== SHOOTOUT_COMMENT;
+  const rows = events.filter(isMatchGoal);
   const run = db.transaction(() => {
     deleteGoals.run({ match_id: matchId }); // idempotent: clear then insert
     rows.forEach((e) => insertGoal.run(goalParams(matchId, e)));
@@ -274,6 +332,7 @@ async function main(): Promise<void> {
     const fixtures = await seedMatches(teamToGroup);
     linkBracket(fixtures);
     await seedStatsAndGoals(fixtures);
+    await backfillGoalPlayers(); // fill scorers/assisters missing from current squads
     log("✅ seed complete");
   } catch (err) {
     if (err instanceof RateLimitError) {

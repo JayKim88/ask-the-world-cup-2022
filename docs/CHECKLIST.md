@@ -20,8 +20,9 @@
 - [x] **1일차** (2026-07-20): teams(32)·players(878)·matches(64)·**대진표 링크** / match_stats·goals **28/64** → 한도 도달 ⏸
 - [x] **2일차** (2026-07-21): stats/goals **완주** — match_stats **128행(64/64)** · goals **198행(58/64, 나머지 6경기는 실제 0-0 무득점)**
 - [x] 데이터 검증: et 누적(결승 3-3)·재귀 CTE 대진표·**골수 정합**(스코어합=골행수)·**자책골 크레딧**(수혜팀) 통과
-- [~] **선수 백필** — `players/squads`가 현재 스쿼드라 2022 득점자 79명 누락(지루 등) 발견 → seed.ts에 **자가치유 백필** 추가(orphan만 `players?id&season=2022`, 팀은 로컬 도출). **12/79 완료**, 한도 도달 ⏸ → 내일 리셋 후 67명 완주
-- [ ] `.db` 완주(백필 포함) 후 git 커밋 — **선수 백필 79명 다 채워질 때까지 커밋 보류**(득점왕 질의 정확도)
+- [x] **선수 백필 완주** — `players/squads`가 현재 스쿼드라 2022 득점자 79명 누락(지루 등) 발견 → seed.ts **자가치유 백필**(orphan만 `players?id&season=2022`, 팀은 로컬 도출). **79/79 완료**, orphan 0, players 957
+- [x] **승부차기 골 오염 수정** — events의 `comments="Penalty Shootout"` 킥이 골로 집계돼 득점왕 부풀림 발견 → seed 필터에 제외 추가, 5개 경기 재시딩. **검증: Mbappé 8·Messi 7·총 172골 = 공식 일치**
+- [x] `.db` 완주 후 git 커밋 (배포에 딸려감) — 아래 `fix(seed)`
 
 ## NL→SQL 파이프라인 (§3) ✅
 - [x] `[§3]` 스키마 컨텍스트 주입 프롬프트 + `generateText`+`Output.object`(Zod, v7) — provider-neutral BYOK(Gemini 기본)
