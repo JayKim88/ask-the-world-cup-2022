@@ -10,15 +10,13 @@
 // The DB is a FIXED read-only file (unlike per-user BYOK keys), so a single
 // cached connection is correct and cheaper than opening one per query.
 
-import path from "node:path";
+import type Database from "better-sqlite3";
 
-import Database from "better-sqlite3";
+import { bundledDb } from "@/lib/db";
 
 import { MAX_RESULT_ROWS } from "./constants";
 
 export { MAX_RESULT_ROWS };
-
-const DB_PATH = process.env.SQLITE_DB_PATH ?? path.join(process.cwd(), "db", "worldcup.db");
 
 // Rows are positional arrays aligned with `columns`, not objects: SQL can
 // return duplicate column names (e.g. `SELECT home.name, away.name …`, common
@@ -27,13 +25,6 @@ export interface ExecuteResult {
   columns: string[];
   rows: unknown[][];
   truncated: boolean;
-}
-
-let cachedDb: Database.Database | null = null;
-
-function bundledDb(): Database.Database {
-  if (!cachedDb) cachedDb = new Database(DB_PATH, { readonly: true, fileMustExist: true });
-  return cachedDb;
 }
 
 // Takes an injected connection so tests can run against an in-memory fixture DB.

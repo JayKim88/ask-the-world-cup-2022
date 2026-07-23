@@ -41,9 +41,9 @@
 - [x] `[§5]` LLM 라이브 검증 — **Claude 키로 전체 플로우 성공**(질문→SQL→검증→실행→테이블). Gemini 무료 티어는 계정별 `limit:0` 가능 → 멀티프로바이더 BYOK로 우회 확인
 - [x] `[§5]` 모델 ID 견고화 — 배포용 안정 모델(`gemini-2.0-flash` 기본) + 무효/deprecated 저장값 자동교체(`isKnownModel`)
 
-## 시각화 (§6)
+## 시각화 (§6) ✅
 - [x] `[§6]` `ChartView` — 결과 shape 감지 라우팅(`chooseChart`: scalar/bar/line/pie/table). LLM `viz_hint`는 shape 호환 시만 채택, 테이블 항상 폴백. Recharts + 차트/테이블 토글. 프롬프트에 viz_hint 지침 추가
-- [ ] `[§6]` `BracketTree` — D3 인터랙티브 대진표(호버 상세·전환 애니메이션)
+- [x] `[§6]` `BracketTree` — **D3 인터랙티브 대진표** (`/bracket`). 순수 레이아웃(`layoutBracket`, next_match_id 트리·테스트) + D3 렌더(엘보 커넥터·승자 녹색 강조·호버 stroke+상세 title·컬럼별 페이드인). 공유 `lib/db.ts` readonly 커넥션(execute와 재사용). 헤드리스 검증: 16박스·14커넥터·에러0
 
 ## eval + 배포 (§7)
 - [ ] `[§7]` gold set 15~20문항(`order_sensitive` 태깅) — §3.1 기반

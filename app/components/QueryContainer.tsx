@@ -6,6 +6,8 @@
 
 import { useState, useTransition } from "react";
 
+import Link from "next/link";
+
 import { askAction } from "@/app/actions";
 import type { AskResult } from "@/lib/text2sql/ask";
 
@@ -73,13 +75,21 @@ export function QueryContainer() {
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Ask the World Cup 2022</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">자연어 질문 → SQL → 2022 카타르 월드컵 데이터</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setDialogOpen(true)}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-        >
-          ⚙ {hasKey ? model : "API 설정"}
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/bracket"
+            className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            🏆 대진표
+          </Link>
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            ⚙ {hasKey ? model : "API 설정"}
+          </button>
+        </div>
       </header>
 
       {showKeyPrompt ? (
