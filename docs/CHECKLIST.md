@@ -46,8 +46,8 @@
 - [x] `[§6]` `BracketTree` — **D3 인터랙티브 대진표** (`/bracket`). 순수 레이아웃(`layoutBracket`, next_match_id 트리·테스트) + D3 렌더(엘보 커넥터·승자 녹색 강조·호버 stroke+상세 title·컬럼별 페이드인). 공유 `lib/db.ts` readonly 커넥션(execute와 재사용). 헤드리스 검증: 16박스·14커넥터·에러0
 
 ## eval + 배포 (§7)
-- [ ] `[§7]` gold set 15~20문항(`order_sensitive` 태깅) — §3.1 기반
-- [ ] `[§7]` execution-match eval 스크립트(temperature=0)
+- [x] `[§7]` gold set **15문항**(`eval/gold-set.json`, `order_sensitive` 태깅) — §3.1 기반, 전부 `safeQuery` 통과 검증
+- [x] `[§7]` execution-match eval 스크립트(`pnpm eval`, temperature=0) + 순수 비교 로직(`lib/eval/compare.ts`, 테스트). 실행엔 서버측 키(EVAL_API_KEY) 필요
 - [ ] `[§7]` 안전성 수동 테스트(인젝션·비용공격 → 읽기전용 open·쿼리 타임아웃 차단 확인)
 - [ ] `[§7]` Vercel 배포
 - [ ] `[§7]` 제품 README(reader-facing) 작성 — Phase D

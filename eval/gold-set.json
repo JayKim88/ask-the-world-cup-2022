@@ -1,0 +1,92 @@
+[
+  {
+    "id": "qf-teams",
+    "question": "8강에 진출한 팀 목록",
+    "order_sensitive": false,
+    "gold_sql": "SELECT name FROM teams WHERE id IN (SELECT home_team_id FROM matches WHERE round='qf' UNION SELECT away_team_id FROM matches WHERE round='qf') ORDER BY name"
+  },
+  {
+    "id": "shootout-count",
+    "question": "승부차기까지 간 경기가 몇 개야?",
+    "order_sensitive": false,
+    "gold_sql": "SELECT COUNT(*) AS c FROM matches WHERE pen_home IS NOT NULL"
+  },
+  {
+    "id": "final-teams",
+    "question": "결승전에 출전한 두 팀은?",
+    "order_sensitive": false,
+    "gold_sql": "SELECT h.name AS home, a.name AS away FROM matches m JOIN teams h ON m.home_team_id=h.id JOIN teams a ON m.away_team_id=a.id WHERE m.round='final'"
+  },
+  {
+    "id": "total-goals",
+    "question": "이번 대회 전체 골은 몇 개야?",
+    "order_sensitive": false,
+    "gold_sql": "SELECT COUNT(*) AS total FROM goals"
+  },
+  {
+    "id": "scoreless-count",
+    "question": "0-0 무득점으로 끝난 경기 수",
+    "order_sensitive": false,
+    "gold_sql": "SELECT COUNT(*) AS c FROM matches WHERE ft_home=0 AND ft_away=0 AND et_home IS NULL"
+  },
+  {
+    "id": "extra-time-matches",
+    "question": "연장까지 간 경기들",
+    "order_sensitive": false,
+    "gold_sql": "SELECT h.name AS home, a.name AS away FROM matches m JOIN teams h ON m.home_team_id=h.id JOIN teams a ON m.away_team_id=a.id WHERE m.et_home IS NOT NULL ORDER BY m.id"
+  },
+  {
+    "id": "own-goals",
+    "question": "자책골이 나온 경기의 선수와 크레딧 받은 팀",
+    "order_sensitive": false,
+    "gold_sql": "SELECT p.name AS scorer, t.name AS credited_team FROM goals g JOIN players p ON g.scorer_player_id=p.id JOIN teams t ON g.team_id=t.id WHERE g.detail='owngoal'"
+  },
+  {
+    "id": "hat-tricks",
+    "question": "한 경기에서 3골 이상 넣은 선수",
+    "order_sensitive": false,
+    "gold_sql": "SELECT p.name FROM goals g JOIN players p ON g.scorer_player_id=p.id WHERE g.detail<>'owngoal' GROUP BY g.match_id, p.id HAVING COUNT(*)>=3"
+  },
+  {
+    "id": "penalty-scorers",
+    "question": "페널티킥으로 득점한 선수 목록",
+    "order_sensitive": false,
+    "gold_sql": "SELECT DISTINCT p.name FROM goals g JOIN players p ON g.scorer_player_id=p.id WHERE g.detail='penalty' ORDER BY p.name"
+  },
+  {
+    "id": "comeback-losses",
+    "question": "전반에 앞섰지만 최종적으로 패한 경기",
+    "order_sensitive": false,
+    "gold_sql": "SELECT h.name AS home, a.name AS away FROM matches m JOIN teams h ON m.home_team_id=h.id JOIN teams a ON m.away_team_id=a.id WHERE (m.ht_home>m.ht_away AND m.ft_home<m.ft_away) OR (m.ht_away>m.ht_home AND m.ft_away<m.ft_home)"
+  },
+  {
+    "id": "top-scorers",
+    "question": "득점왕 TOP 5",
+    "order_sensitive": true,
+    "gold_sql": "SELECT p.name, COUNT(*) AS goals FROM goals g JOIN players p ON g.scorer_player_id=p.id WHERE g.detail<>'owngoal' GROUP BY p.id ORDER BY goals DESC, p.name LIMIT 5"
+  },
+  {
+    "id": "top-assists",
+    "question": "어시스트가 가장 많은 선수 TOP 5",
+    "order_sensitive": true,
+    "gold_sql": "SELECT p.name, COUNT(*) AS assists FROM goals g JOIN players p ON g.assist_player_id=p.id GROUP BY p.id ORDER BY assists DESC, p.name LIMIT 5"
+  },
+  {
+    "id": "most-carded-teams",
+    "question": "카드를 가장 많이 받은 팀 TOP 5",
+    "order_sensitive": true,
+    "gold_sql": "SELECT t.name, SUM(s.yellow_cards)+SUM(s.red_cards) AS cards FROM match_stats s JOIN teams t ON s.team_id=t.id GROUP BY t.id ORDER BY cards DESC, t.name LIMIT 5"
+  },
+  {
+    "id": "referee-fouls",
+    "question": "심판별 평균 파울 수 TOP 5",
+    "order_sensitive": true,
+    "gold_sql": "SELECT m.referee, ROUND(AVG(s.fouls),1) AS avg_fouls FROM matches m JOIN match_stats s ON s.match_id=m.id WHERE m.referee IS NOT NULL GROUP BY m.referee ORDER BY avg_fouls DESC, m.referee LIMIT 5"
+  },
+  {
+    "id": "most-shots",
+    "question": "슈팅을 가장 많이 한 팀 TOP 5",
+    "order_sensitive": true,
+    "gold_sql": "SELECT t.name, SUM(s.shots_total) AS shots FROM match_stats s JOIN teams t ON s.team_id=t.id GROUP BY t.id ORDER BY shots DESC, t.name LIMIT 5"
+  }
+]

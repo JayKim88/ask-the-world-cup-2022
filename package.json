@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "format": "prettier --write .",
-    "seed": "tsx --env-file=.env scripts/seed.ts"
+    "seed": "tsx --env-file=.env scripts/seed.ts",
+    "eval": "tsx --env-file=.env eval/run.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.16",
